@@ -1,66 +1,92 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { pingProjectsAction } from './actions';
+import type { PingResult } from '@/lib/ping';
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
+  const [lastPing, setLastPing] = useState<string | null>(null);
+  const [results, setResults] = useState<PingResult[]>([]);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    try {
+      const response = await pingProjectsAction();
+      setResults(response.results);
+      setLastPing(response.timestamp);
+    } catch (error) {
+      console.error('Error fetching ping status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="container">
+      <div className="header">
+        <h1>Supabase Pinger</h1>
+        <p>Keeping your free-tier projects alive automatically.</p>
+        {lastPing && (
+          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6366f1' }}>
+            Last pinged: {new Date(lastPing).toLocaleString()}
           </p>
+        )}
+      </div>
+
+      {loading && results.length === 0 ? (
+        <div className="empty-state">
+          Loading your active projects...
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      ) : results.length === 0 ? (
+        <div className="empty-state">
+          <h3>No projects configured</h3>
+          <p>Please add SUPABASE_1_URL and SUPABASE_1_KEY to your environment variables.</p>
         </div>
-      </main>
-    </div>
+      ) : (
+        <div className="dashboard">
+          {results.map((project, index) => (
+            <div key={index} className="card">
+              <div className="card-header">
+                <span className="card-title">{project.name}</span>
+                <div className="status">
+                  <div
+                    className={`status-dot ${loading ? 'pinging' : project.success ? 'success' : 'error'}`}
+                  ></div>
+                  {loading ? 'Pinging...' : project.success ? 'Online' : 'Failed'}
+                </div>
+              </div>
+              <div className="card-body">
+                <div className="card-meta">{project.url.replace('https://', '')}</div>
+                {project.success && <span className="tag">REST API</span>}
+                {project.success && <span className="tag">Auth Check</span>}
+                {project.error && (
+                  <div className="error-msg">
+                    Error: {project.error}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="action-bar">
+        <button 
+          className={`btn ${loading ? 'loading' : ''}`} 
+          onClick={fetchStatus} 
+          disabled={loading}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.5 2v6h-6M2.13 15.57a9 9 0 1 0 3.84-10.36L2 8" />
+          </svg>
+          {loading ? 'Pinging...' : 'Ping Now'}
+        </button>
+      </div>
+    </main>
   );
 }
