@@ -9,7 +9,7 @@ export async function performPing(): Promise<PingResult[]> {
 
     if (url && key) {
       try {
-        const response = await fetch(`${url.replace(/\/$/, '')}/rest/v1/`, {
+        const response = await fetch(`${url.replace(/\/$/, '')}/auth/v1/health`, {
           method: 'GET',
           headers: {
             'apikey': key,

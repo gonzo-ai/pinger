@@ -7,7 +7,7 @@ cron.schedule('0 8,20 * * *', async () => {
   console.log(`[${new Date().toISOString()}] Triggering scheduled ping...`);
   
   try {
-    const response = await fetch('http://localhost:3000/api/ping', {
+    const response = await fetch('http://localhost:3001/api/ping', {
       method: 'GET',
       headers: {
         'Authorization': process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : undefined
